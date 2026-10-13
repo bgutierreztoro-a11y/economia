@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laboratorio de Mercado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: banco de trabajo — gráfico grande a la izquierda, misiones y controles a la derecha; se apila en el teléfono */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --surface-2:#f5f7fb; --ink:#18202d; --muted:#5b6678; --line:#d4dae4; --grid:#e5e9f0;
+  --demand:#2f50c4; --supply:#0a8a72; --accent:#7a3fd1; --warn:#c47f00; --good:#1f8a4c; --bad:#c43a3a;
+  --demand-tint:rgba(47,80,196,.18); --supply-tint:rgba(10,138,114,.18); --warn-tint:rgba(214,140,0,.32); --accent-tint:rgba(122,63,209,.14);
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e131b; --surface:#161d28; --surface-2:#1c2533; --ink:#e6ebf3; --muted:#9aa5b8; --line:#2b3546; --grid:#202a38;
+  --demand:#86a2ff; --supply:#3fd1b1; --accent:#b58cff; --warn:#f2b53d; --good:#4cc47e; --bad:#f06c6c;
+  --demand-tint:rgba(134,162,255,.2); --supply-tint:rgba(63,209,177,.18); --warn-tint:rgba(242,181,61,.3); --accent-tint:rgba(181,140,255,.16);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e131b; --surface:#161d28; --surface-2:#1c2533; --ink:#e6ebf3; --muted:#9aa5b8; --line:#2b3546; --grid:#202a38;
+  --demand:#86a2ff; --supply:#3fd1b1; --accent:#b58cff; --warn:#f2b53d; --good:#4cc47e; --bad:#f06c6c;
+  --demand-tint:rgba(134,162,255,.2); --supply-tint:rgba(63,209,177,.18); --warn-tint:rgba(242,181,61,.3); --accent-tint:rgba(181,140,255,.16);
+  color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1180px;margin-inline:auto}
+h1,h2,h3{font-family:var(--display);font-stretch:112%;text-wrap:balance;margin:0;line-height:1.1}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* Header */
+header{padding-block:22px 10px;display:flex;flex-wrap:wrap;gap:14px 24px;align-items:end;justify-content:space-between}
+.brand{display:flex;gap:14px;align-items:center;min-width:0}
+.mark{width:46px;height:46px;flex:none}
+.brand h1{font-size:clamp(22px,3.4vw,30px);font-weight:800;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.score{font:500 13px var(--mono);color:var(--muted);display:flex;gap:6px;align-items:center}
+.score b{color:var(--ink);font-weight:600}
+
+/* Tabs */
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line);margin-bottom:18px}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;display:flex;align-items:center;gap:8px;border:1px solid transparent;background:none;padding:8px 12px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+.tab:hover{background:var(--surface)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);border-color:var(--line);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.tab .n{font:600 12px var(--mono);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1.5px solid currentColor}
+.tab.done .n{background:var(--good);border-color:var(--good);color:#fff}
+.tab .prog{font:500 11px var(--mono);color:var(--muted)}
+
+/* Module layout */
+.mod{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:880px){.mod{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.stage{display:grid;gap:12px;min-width:0}
+.side{display:grid;gap:14px;min-width:0}
+.mod-head{display:grid;gap:4px}
+.mod-head h2{font-size:clamp(22px,3vw,28px);font-weight:750}
+.mod-head p{margin:0;color:var(--muted);max-width:60ch}
+.eyebrow{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+
+/* Graph */
+.graph{width:100%;height:auto;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+.graph .grid{stroke:var(--grid);stroke-width:1}
+.graph .axis{stroke:var(--ink);stroke-width:1.5}
+.graph .tick{fill:var(--muted);font:12px var(--mono)}
+.graph .axt{fill:var(--muted);font:600 12px var(--body);letter-spacing:.03em}
+.graph .cD,.graph .cS{fill:none;stroke-width:3.5;stroke-linecap:round}
+.graph .cD{stroke:var(--demand)} .graph .cS{stroke:var(--supply)}
+.graph .ghost{opacity:.35;stroke-dasharray:7 6;stroke-width:2.5}
+.graph .lD{fill:var(--demand);font:800 16px var(--display)} .graph .lS{fill:var(--supply);font:800 16px var(--display)}
+.graph .lghost{opacity:.45}
+.graph .hit{stroke:transparent;stroke-width:28;fill:none;cursor:grab;pointer-events:stroke}
+.graph .hit:active{cursor:grabbing}
+.graph .fCS{fill:var(--demand-tint)} .graph .fPS{fill:var(--supply-tint)} .graph .fDWL{fill:var(--warn-tint)}
+.graph [data-hit]{cursor:pointer}
+.graph .flash{stroke:var(--accent);stroke-width:2.5;stroke-dasharray:5 4}
+.graph .rA{fill:var(--accent-tint);stroke:var(--accent);stroke-width:1.5}
+.graph .rB{fill:none;stroke:var(--warn);stroke-width:2;stroke-dasharray:6 4}
+.graph .dot{stroke-width:3;fill:var(--surface)}
+.graph .dD{stroke:var(--demand)} .graph .dS{stroke:var(--supply)} .graph .dE{fill:var(--ink);stroke:var(--surface)} .graph .dOld{fill:var(--surface);stroke:var(--muted);stroke-dasharray:3 2}
+.graph .guide{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:3 4}
+.graph .price{stroke:var(--ink);stroke-width:1.6}
+.graph .gap{stroke:var(--warn);stroke-width:7;stroke-linecap:round;opacity:.9}
+.graph .gl{fill:var(--ink);font:500 12px var(--mono)}
+.graph .glw{fill:var(--warn);font:700 13px var(--body)}
+.graph .pill{fill:var(--ink)} .graph .pillt{fill:var(--surface);font:600 12px var(--mono)}
+.graph .handle{cursor:grab}
+.graph .arr{stroke:var(--ink);stroke-width:2;fill:none}
+.graph .arrowhead{fill:var(--ink)}
+.graph .ptA{fill:var(--accent);stroke:var(--surface);stroke-width:3;cursor:grab}
+.graph .ptB{fill:var(--warn);stroke:var(--surface);stroke-width:3;cursor:grab}
+.graph .ptl{font:700 13px var(--display)}
+.graph .zone{fill:var(--muted);font:600 11px var(--mono)}
+@media (max-width:600px){.graph .tick,.graph .gl,.graph .zone{font-size:16px}.graph .axt,.graph .glw{font-size:16px}.graph .lD,.graph .lS{font-size:20px}.graph .pillt{font-size:15px}}
+.hintbar{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px}
+.hintbar .grab{font:600 11px var(--mono);border:1px dashed var(--line);border-radius:6px;padding:2px 6px}
+
+/* Missions */
+.missions{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.missions h3{font-size:17px}
+.mi{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;align-items:start;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:14px}
+.mi .ck{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font:700 12px var(--mono);margin-top:1px}
+.mi.active{background:var(--surface);color:var(--ink);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint)}
+.mi.active .ck{border-color:var(--accent);color:var(--accent)}
+.mi.done{color:var(--ink)}
+.mi.done .ck{background:var(--good);border-color:var(--good);color:#fff}
+.mi .act{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mtitle{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mtitle span{font:500 12px var(--mono);color:var(--muted)}
+
+/* Buttons & chips */
+.btn{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:500;font-size:14px;transition:transform .08s}
+.btn:hover{border-color:var(--ink)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn.ok{background:var(--good);border-color:var(--good);color:#fff}
+.btn.no{border-color:var(--bad);color:var(--bad)}
+.btn[disabled]{opacity:.45;cursor:default}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;font:600 12px var(--mono);padding:3px 10px;border-radius:999px;border:1.5px solid currentColor}
+.chip.warn{color:var(--warn)} .chip.good{color:var(--good)} .chip.bad{color:var(--bad)} .chip.acc{color:var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface-2)}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+
+/* Readouts */
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:118px minmax(0,1fr) 52px;gap:10px;align-items:center;font-size:13px}
+.bar .track{height:14px;background:var(--surface-2);border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+.bar .fill{height:100%;border-radius:999px;transition:width .12s}
+.bar .v{font:600 13px var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.status{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.stat{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.stat .k{font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font:600 20px var(--mono);font-variant-numeric:tabular-nums}
+.stat .d{font:500 12px var(--mono)}
+.up{color:var(--good)} .down{color:var(--bad)}
+.stat.cs{border-color:var(--demand)} .stat.ps{border-color:var(--supply)} .stat.dwl{border-color:var(--warn)}
+.feedback{min-height:1.5em;font-size:14px}
+.feedback.ok{color:var(--good)} .feedback.no{color:var(--bad)}
+details.why{border-top:1px solid var(--line);padding-top:10px;font-size:14px;color:var(--muted)}
+details.why summary{cursor:pointer;color:var(--ink);font-weight:600}
+details.why p{margin:.5em 0 0;max-width:62ch}
+.scenario{display:grid;gap:8px}
+.scenario .mk{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.scenario .txt{font:600 18px/1.35 var(--display);font-stretch:105%}
+.dots{display:flex;flex-wrap:wrap;gap:6px}
+.dots button{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);font:600 11px var(--mono);cursor:pointer;color:var(--muted)}
+.dots button.cur{border-color:var(--ink);color:var(--ink)}
+.dots button.ok{background:var(--good);border-color:var(--good);color:#fff}
+.qrow{display:grid;gap:6px}
+.qrow .lbl{font-weight:600;font-size:14px}
+.nudge{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.nudge .btn{padding:4px 10px;font-size:13px}
+.calc{font:500 13px/1.7 var(--mono);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;overflow-x:auto}
+.gauge{position:relative;height:16px;border-radius:999px;background:linear-gradient(90deg,var(--supply-tint) 0 33.3%,var(--demand-tint) 33.3% 100%);border:1px solid var(--line)}
+.gauge .one{position:absolute;left:33.3%;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.gauge .m{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:var(--warn);border:3px solid var(--surface);transform:translate(-50%,-50%);transition:left .12s}
+.gscale{display:flex;justify-content:space-between;font:500 11px var(--mono);color:var(--muted)}
+label.sl{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input.num{font:600 16px var(--mono);width:9em;max-width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.inrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pairs{display:grid;gap:8px}
+.pair{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch}
+.pair .btn{border-radius:10px;text-align:left;padding:10px 12px;font-size:13.5px}
+.pair .vs{align-self:center;font:600 11px var(--mono);color:var(--muted)}
+.pair-fb{grid-column:1/-1;font-size:13px}
+.qcard{display:grid;gap:12px}
+.qcard .stmt{font-size:16px;max-width:62ch}
+.qcard .eqn{font:600 16px var(--mono);background:var(--surface-2);border-radius:8px;padding:8px 12px;display:inline-block}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140%);background:var(--ink);color:var(--surface);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;transition:transform .25s ease;z-index:20;max-width:calc(100vw - 32px);text-align:center}
+.toast.show{transform:translate(-50%,0)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 46 46" aria-hidden="true"><rect x="1" y="1" width="44" height="44" rx="10" fill="var(--surface)" stroke="var(--line)"/><path d="M9 9 L37 36" stroke="var(--demand)" stroke-width="3.5" stroke-linecap="round"/><path d="M9 36 L37 10" stroke="var(--supply)" stroke-width="3.5" stroke-linecap="round"/><circle cx="23" cy="22.5" r="4" fill="var(--ink)"/></svg>
+    <div><h1>Laboratorio de Mercado</h1><p>Mueve las curvas, rompe el equilibrio y descubre cómo reacciona el mercado.</p></div>
+  </div>
+  <div class="score" id="totalScore">Misiones <b id="totDone">0</b>/<span id="totAll">0</span></div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Módulos">
+  <button class="tab" role="tab" data-mod="mercado"><span class="n">1</span>Equilibrio <span class="prog"></span></button>
+  <button class="tab" role="tab" data-mod="cambios"><span class="n">2</span>Cambios en el mercado <span class="prog"></span></button>
+  <button class="tab" role="tab" data-mod="elasticidad"><span class="n">3</span>Elasticidad <span class="prog"></span></button>
+  <button class="tab" role="tab" data-mod="excedentes"><span class="n">4</span>Excedentes <span class="prog"></span></button>
+  <button class="tab" role="tab" data-mod="desafio"><span class="n">5</span>Desafío <span class="prog"></span></button>
+</nav>
+
+<!-- 1 · EQUILIBRIO -->
+<section class="mod" id="mercado" role="tabpanel">
+  <div class="stage">
+    <div class="mod-head"><span class="eyebrow">Módulo 1</span><h2>¿Dónde se pone de acuerdo el mercado?</h2></div>
+    <div class="card">
+      <svg class="graph" id="g1" viewBox="0 0 560 430" role="img" aria-label="Gráfico de oferta y demanda con línea de precio arrastrable"></svg>
+      <div class="hintbar"><span class="grab">ARRASTRA</span> la línea de precio hacia arriba o abajo.</div>
+    </div>
+    <div class="card bars" id="m1bars"></div>
+  </div>
+  <div class="side">
+    <div class="card">
+      <ul class="missions" id="m1list"></ul>
+    </div>
+    <div class="card">
+      <div class="status" id="m1status"></div>
+      <details class="why"><summary>¿Por qué el precio no se queda donde está?</summary>
+        <p>Si sobran unidades, los vendedores bajan el precio para no quedarse con stock. Si faltan, los compradores compiten y el precio sube. Solo en el cruce de las curvas nadie tiene motivo para cambiarlo: eso es el <b>equilibrio</b>.</p>
+        <p><b>Ley de la demanda:</b> si sube el precio, la gente compra menos. <b>Ley de la oferta:</b> si sube el precio, los productores quieren vender más.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- 2 · CAMBIOS -->
+<section class="mod" id="cambios" role="tabpanel" hidden>
+  <div class="stage">
+    <div class="mod-head"><span class="eyebrow">Módulo 2</span><h2>Algo pasa en el mundo. ¿Qué curva se mueve?</h2></div>
+    <div class="card">
+      <svg class="graph" id="g2" viewBox="0 0 560 430" role="img" aria-label="Gráfico con curvas de oferta y demanda arrastrables"></svg>
+      <div class="hintbar"><span class="grab">ARRASTRA</span> una curva hacia la izquierda o la derecha.</div>
+      <div class="nudge" id="m2nudge">Sin mouse:
+        <button class="btn" data-n="D-">D ←</button><button class="btn" data-n="D+">D →</button>
+        <button class="btn" data-n="S-">O ←</button><button class="btn" data-n="S+">O →</button>
+      </div>
+    </div>
+    <div class="card stats" id="m2stats"></div>
+  </div>
+  <div class="side">
+    <div class="seg" role="group" aria-label="Modo"><button id="m2modeC" aria-pressed="true">Casos</button><button id="m2modeL" aria-pressed="false">Laboratorio libre</button></div>
+    <div class="card" id="m2cases">
+      <div class="mtitle"><h3>Caso <span id="m2num"></span></h3><div class="dots" id="m2dots"></div></div>
+      <div class="scenario" style="margin-top:10px"><span class="mk" id="m2mk"></span><div class="txt" id="m2txt"></div></div>
+      <div id="m2step" style="margin-top:12px;display:grid;gap:10px"></div>
+    </div>
+    <div class="card" id="m2lab" hidden>
+      <div class="mtitle"><h3>Retos libres</h3><button class="btn" id="m2reset">Reiniciar curvas</button></div>
+      <ul class="missions" id="m2list" style="margin-top:10px"></ul>
+    </div>
+    <div class="card">
+      <details class="why"><summary>¿Qué mueve cada curva?</summary>
+        <p><b>Demanda (D):</b> ingreso, gustos, precio de sustitutos o complementos, expectativas, número de compradores.</p>
+        <p><b>Oferta (O):</b> costo de insumos, tecnología, clima, número de vendedores, impuestos.</p>
+        <p>Si cambia el <b>precio del propio bien</b>, ninguna curva se desplaza: nos movemos <i>a lo largo</i> de ella.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · ELASTICIDAD -->
+<section class="mod" id="elasticidad" role="tabpanel" hidden>
+  <div class="stage">
+    <div class="mod-head"><span class="eyebrow">Módulo 3</span><h2>Si subo el precio, ¿gano más o pierdo clientes?</h2></div>
+    <div class="card">
+      <svg class="graph" id="g3" viewBox="0 0 560 430" role="img" aria-label="Curva de demanda con dos puntos arrastrables y rectángulos de ingreso"></svg>
+      <div class="hintbar"><span class="grab">ARRASTRA</span> los puntos A y B sobre la curva. El rectángulo es el ingreso: P × Q.</div>
+      <label class="sl" for="m3slope" style="margin-top:10px">Sensibilidad de los compradores al precio
+        <input type="range" id="m3slope" min="0.4" max="3" step="0.1" value="1">
+        <span class="gscale"><span>muy sensibles (curva plana)</span><span>poco sensibles (curva empinada)</span></span>
+      </label>
+    </div>
+    <div class="card" id="m3read"></div>
+  </div>
+  <div class="side">
+    <div class="card"><ul class="missions" id="m3list"></ul></div>
+    <div class="card">
+      <div class="mtitle"><h3>¿Cuál reacciona más al precio?</h3><span id="m3pairsScore"></span></div>
+      <p style="margin:6px 0 10px;color:var(--muted);font-size:14px">Toca el bien con demanda más elástica.</p>
+      <div class="pairs" id="m3pairs"></div>
+    </div>
+    <div class="card">
+      <details class="why"><summary>La regla del ingreso</summary>
+        <p><b>|E| &gt; 1 (elástica):</b> la cantidad cae más que lo que sube el precio, así que el ingreso baja.</p>
+        <p><b>|E| &lt; 1 (inelástica):</b> la gente sigue comprando casi lo mismo, así que el ingreso sube.</p>
+        <p>En una demanda lineal, la parte alta es elástica y la baja inelástica. Justo al medio |E| = 1 y el ingreso es máximo. Por eso <b>pendiente y elasticidad no son lo mismo</b>.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · EXCEDENTES -->
+<section class="mod" id="excedentes" role="tabpanel" hidden>
+  <div class="stage">
+    <div class="mod-head"><span class="eyebrow">Módulo 4</span><h2>¿Quién gana con el intercambio, y quién pierde si el Estado fija el precio?</h2></div>
+    <div class="card">
+      <svg class="graph" id="g4" viewBox="0 0 560 430" role="img" aria-label="Gráfico de excedentes con precio regulado arrastrable"></svg>
+      <div class="hintbar"><span class="grab">ARRASTRA</span> la línea de precio para fijar un precio máximo (abajo) o mínimo (arriba). <span class="grab">TOCA</span> las áreas.</div>
+    </div>
+    <div class="card stats" id="m4stats"></div>
+  </div>
+  <div class="side">
+    <div class="card"><ul class="missions" id="m4list"></ul></div>
+    <div class="card">
+      <div class="status" id="m4status"></div>
+      <details class="why"><summary>¿Qué significan estas áreas?</summary>
+        <p><b>Excedente del consumidor:</b> lo que los compradores estaban dispuestos a pagar menos lo que pagaron. Es el área bajo la demanda y sobre el precio.</p>
+        <p><b>Excedente del productor:</b> lo que reciben los vendedores menos su costo mínimo para vender. Es el área sobre la oferta y bajo el precio.</p>
+        <p><b>Pérdida irrecuperable:</b> intercambios que convenían a ambos lados y que la regulación impide. Nadie se queda con ese valor.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · DESAFÍO -->
+<section class="mod" id="desafio" role="tabpanel" hidden>
+  <div class="stage">
+    <div class="mod-head"><span class="eyebrow">Módulo 5</span><h2>Desafío: cada pregunta es nueva</h2><p>Los números cambian en cada intento. Resuelve, comprueba y, si te equivocas, mira la solución paso a paso.</p></div>
+    <div class="card qcard" id="m5card"></div>
+  </div>
+  <div class="side">
+    <div class="card">
+      <div class="stats" id="m5score"></div>
+      <div class="btns" style="margin-top:12px" id="m5types"></div>
+    </div>
+    <div class="card"><ul class="missions" id="m5list"></ul></div>
+  </div>
+</section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ---------- utilidades ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const QMAX = 100, PMAX = 100;
+const G = { W: 560, H: 430, ml: 54, mr: 22, mt: 18, mb: 46 };
+const PW = G.W - G.ml - G.mr, PH = G.H - G.mt - G.mb;
+const X = q => G.ml + q / QMAX * PW, Y = p => G.mt + PH - p / PMAX * PH;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function fmt(n, d = 1) { if (!isFinite(n)) return "—"; const r = Number(n.toFixed(d)); return (Object.is(r, -0) ? 0 : r).toLocaleString("es-CL", { maximumFractionDigits: d }); }
+function sgn(n, d = 1) { const s = fmt(n, d); return n > 0.05 ? "+" + s : s; }
+function parseNum(s) { s = String(s).trim().replace(/\s|\$/g, ""); if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, ""); else if (s.includes(",")) s = s.replace(/\./g, "").replace(",", "."); return parseFloat(s); }
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2600); }
+function tween(from, to, ms, step, done) { if (reduce) { step(to); done && done(); return; } const t0 = performance.now(); (function f(t) { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); step(from + (to - from) * e); if (k < 1) requestAnimationFrame(f); else done && done(); })(t0); }
+
+/* ---------- modelo ---------- */
+// Demanda inversa: P = A − B·Q   ·   Oferta inversa: P = C + D·Q
+const M = { A: 100, B: 1, C: 20, D: 0.6 };
+const eq = m => { const Q = (m.A - m.C) / (m.B + m.D); return { Q, P: m.A - m.B * Q }; };
+const Qd = (m, P) => Math.max(0, (m.A - P) / m.B);
+const Qs = (m, P) => Math.max(0, (P - m.C) / m.D);
+const shifted = (sD, sS) => ({ A: M.A + M.B * sD, B: M.B, C: M.C - M.D * sS, D: M.D }); // desplazamientos horizontales en unidades de Q
+const csOf = m => { const e = eq(m); return 0.5 * e.Q * (m.A - e.P); };
+const psOf = m => { const e = eq(m); return 0.5 * e.Q * (e.P - m.C); };
+function area(pts) { let s = 0; for (let i = 0; i < pts.length; i++) { const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % pts.length]; s += x1 * y2 - x2 * y1; } return Math.abs(s) / 2; }
+
+/* ---------- dibujo SVG ---------- */
+function seg(k, s) { let lo = 0, hi = QMAX; if (s !== 0) { const a = -k / s, b = (PMAX - k) / s; lo = Math.max(lo, Math.min(a, b)); hi = Math.min(hi, Math.max(a, b)); } return hi > lo ? [[lo, k + s * lo], [hi, k + s * hi]] : null; }
+const ln = (q1, p1, q2, p2, c, extra = "") => `<line class="${c}" x1="${X(q1).toFixed(1)}" y1="${Y(p1).toFixed(1)}" x2="${X(q2).toFixed(1)}" y2="${Y(p2).toFixed(1)}" ${extra}/>`;
+const poly = (pts, c, extra = "") => `<polygon class="${c}" points="${pts.map(([q, p]) => X(q).toFixed(1) + "," + Y(p).toFixed(1)).join(" ")}" ${extra}/>`;
+const dot = (q, p, c, r = 6) => `<circle class="dot ${c}" cx="${X(q).toFixed(1)}" cy="${Y(p).toFixed(1)}" r="${r}"/>`;
+const tx = (q, p, t, c, dx = 0, dy = 0, a = "start") => `<text class="${c}" x="${(X(q) + dx).toFixed(1)}" y="${(Y(p) + dy).toFixed(1)}" text-anchor="${a}">${t}</text>`;
+function frame(id) {
+  let s = `<defs><clipPath id="${id}c"><rect x="${G.ml}" y="${G.mt}" width="${PW}" height="${PH}"/></clipPath><marker id="${id}m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" class="arrowhead"/></marker></defs>`;
+  for (let v = 10; v <= 100; v += 10) s += `<line class="grid" x1="${X(v)}" y1="${G.mt}" x2="${X(v)}" y2="${G.mt + PH}"/><line class="grid" x1="${G.ml}" y1="${Y(v)}" x2="${G.ml + PW}" y2="${Y(v)}"/>`;
+  for (let v = 0; v <= 100; v += 20) s += `<text class="tick" x="${X(v)}" y="${G.mt + PH + 18}" text-anchor="middle">${v}</text><text class="tick" x="${G.ml - 8}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  s += `<line class="axis" x1="${G.ml}" y1="${G.mt}" x2="${G.ml}" y2="${G.mt + PH}"/><line class="axis" x1="${G.ml}" y1="${G.mt + PH}" x2="${G.ml + PW}" y2="${G.mt + PH}"/>`;
+  s += `<text class="axt" x="${G.ml + PW}" y="${G.H - 6}" text-anchor="end">Cantidad (Q)</text><text class="axt" transform="translate(15 ${G.mt}) rotate(-90)" text-anchor="end">Precio (P, $)</text>`;
+  return s;
+}
+function draw(svg, inner, over = "") { svg.innerHTML = frame(svg.id) + `<g clip-path="url(#${svg.id}c)">${inner}</g>` + over; }
+function curve(m, which, cls = "", drag = false) {
+  const s = which === "D" ? seg(m.A, -m.B) : seg(m.C, m.D); if (!s) return { line: "", label: "" };
+  const [[q1, p1], [q2, p2]] = s, k = which === "D" ? 0.93 : 0.88, lq = q1 + (q2 - q1) * k, lp = p1 + (p2 - p1) * k;
+  const line = ln(q1, p1, q2, p2, (which === "D" ? "cD " : "cS ") + cls) + (drag ? ln(q1, p1, q2, p2, "hit", `data-drag="${which}"`) : "");
+  const label = tx(lq, lp, which === "D" ? "D" : "O", (which === "D" ? "lD " : "lS ") + (cls.includes("ghost") ? "lghost" : ""), which === "D" ? 8 : 6, which === "D" ? -6 : 18);
+  return { line, label };
+}
+function guides(q, p, lblP, lblQ) {
+  return ln(0, p, q, p, "guide") + ln(q, 0, q, p, "guide") + tx(0, p, lblP, "gl", 6, -6) + tx(q, 0, lblQ, "gl", 6, -8);
+}
+function toData(svg, e) { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const p = pt.matrixTransform(svg.getScreenCTM().inverse()); return { q: (p.x - G.ml) / PW * QMAX, p: (G.mt + PH - p.y) / PH * PMAX }; }
+function dragger(svg, h) {
+  let key = null;
+  svg.addEventListener("pointerdown", e => {
+    const t = e.target.closest("[data-drag]"), pt = toData(svg, e);
+    if (t) { key = t.dataset.drag; svg.setPointerCapture(e.pointerId); h.start && h.start(key, pt); e.preventDefault(); }
+    else if (h.tap) { const hit = e.target.closest("[data-hit]"); h.tap(hit ? hit.dataset.hit : null, pt); }
+  });
+  svg.addEventListener("pointermove", e => { if (key) h.move(key, toData(svg, e)); });
+  const up = e => { if (key) { const k = key; key = null; h.end && h.end(k, toData(svg, e)); } };
+  svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
+}
+
+/* ---------- progreso ---------- */
+const STORE = "labmercado-v1";
+let saved = {}; try { saved = JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { saved = {}; }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(saved)); } catch (e) { } }
+const allMissions = {};
+function Missions(key, el, list, opts = {}) {
+  const done = new Set(saved[key] || []);
+  const api = {
+    list, ordered: opts.ordered !== false,
+    isDone: id => done.has(id),
+    active() { return api.ordered ? list.find(m => !done.has(m.id)) : null; },
+    complete(id) { if (done.has(id)) return; done.add(id); saved[key] = [...done]; save(); const m = list.find(x => x.id === id); toast("✓ " + (m.short || "Misión cumplida")); api.render(); updateProgress(); opts.onDone && opts.onDone(id); },
+    check() { for (const m of list) { if (done.has(m.id) || !m.check) continue; if (api.ordered && api.active() !== m) continue; if (m.check()) { api.complete(m.id); } } },
+    render() {
+      const act = api.active();
+      el.innerHTML = `<div class="mtitle"><h3>Misiones</h3><span>${done.size}/${list.length}</span></div>` + list.map((m, i) => {
+        const st = done.has(m.id) ? "done" : (!api.ordered || m === act) ? "active" : "";
+        return `<li class="mi ${st}" data-id="${m.id}"><span class="ck">${done.has(m.id) ? "✓" : i + 1}</span><div>${m.text}${st === "active" && m.ui ? `<div class="act">${m.ui()}</div><div class="feedback" data-fb></div>` : ""}</div></li>`;
+      }).join("");
+      opts.afterRender && opts.afterRender(el);
+    },
+    count: () => done.size,
+    reset() { done.clear(); saved[key] = []; save(); api.render(); updateProgress(); }
+  };
+  allMissions[key] = api;
+  return api;
+}
+function updateProgress() {
+  let d = 0, t = 0;
+  document.querySelectorAll(".tab").forEach(tab => {
+    const ms = allMissions[tab.dataset.mod]; if (!ms) return;
+    d += ms.count(); t += ms.list.length;
+    tab.querySelector(".prog").textContent = ms.count() + "/" + ms.list.length;
+    tab.classList.toggle("done", ms.count() === ms.list.length);
+  });
+  $("#totDone").textContent = d; $("#totAll").textContent = t;
+}
+
+/* ================= MÓDULO 1 · EQUILIBRIO ================= */
+const m1 = { P: 80, locked: false };
+const g1 = $("#g1");
+const ms1 = Missions("mercado", $("#m1list"), [
+  { id: "esc", short: "Escasez encontrada", text: "Baja el precio hasta que <b>falten al menos 30 unidades</b> (escasez).", check: () => Qd(M, m1.P) - Qs(M, m1.P) >= 30 },
+  { id: "exc", short: "Excedente encontrado", text: "Ahora súbelo hasta que <b>sobren al menos 30 unidades</b>.", check: () => Qs(M, m1.P) - Qd(M, m1.P) >= 30 },
+  { id: "eq", short: "¡Equilibrio!", text: "Encuentra el precio donde <b>no sobra ni falta nada</b>.", check: () => Math.abs(m1.P - eq(M).P) < 0.01 },
+  { id: "p80", short: "Bien predicho", text: "El precio parte en <b>$80</b>. ¿Qué hará el mercado?", ui: () => `<button class="btn" data-a="up">El precio subirá</button><button class="btn" data-a="down">El precio bajará</button><button class="btn" data-a="same">Se quedará en $80</button>`, start: 80, ans: "down", hint: "Mira las barras: sobran unidades. ¿Qué hace un vendedor que no logra vender todo?" },
+  { id: "p25", short: "Bien predicho", text: "Ahora parte en <b>$25</b>. ¿Qué pasará?", ui: () => `<button class="btn" data-a="up">El precio subirá</button><button class="btn" data-a="down">El precio bajará</button><button class="btn" data-a="same">Se quedará en $25</button>`, start: 25, ans: "up", hint: "Faltan unidades: hay compradores que se quedan sin comprar. ¿Qué ofrecerían para conseguirlo?" }
+], {
+  afterRender(el) {
+    const act = ms1.active();
+    if (act && act.start != null && m1.startedFor !== act.id) {
+      const first = !m1.booted; m1.startedFor = act.id;
+      setTimeout(() => { if (!m1.locked) { m1.P = act.start; render1(); } }, first ? 0 : 1300);
+    }
+    el.querySelectorAll("[data-a]").forEach(b => b.onclick = () => {
+      const a = ms1.active(), fb = el.querySelector("[data-fb]");
+      if (b.dataset.a === a.ans) {
+        b.classList.add("ok"); fb.className = "feedback ok"; fb.textContent = "Correcto. Mira cómo se ajusta…"; m1.locked = true;
+        tween(m1.P, eq(M).P, 1800, v => { m1.P = v; render1(); }, () => { m1.P = eq(M).P; m1.locked = false; render1(); ms1.complete(a.id); });
+      } else { b.classList.add("no"); fb.className = "feedback no"; fb.textContent = a.hint; }
+    });
+  }
+});
+function render1() {
+  const P = m1.P, qd = Qd(M, P), qs = Qs(M, P), e = eq(M), gap = qd - qs;
+  const D = curve(M, "D"), S = curve(M, "S");
+  let inner = D.line + S.line + ln(0, P, QMAX, P, "price");
+  const lo = Math.min(qd, qs), hi = Math.max(qd, qs);
+  if (hi - lo > 0.6) inner += ln(lo, P, hi, P, "gap");
+  let over = D.label + S.label;
+  if (hi - lo > 0.6) over += tx((lo + hi) / 2, P, gap > 0 ? `Faltan ${fmt(gap, 0)}` : `Sobran ${fmt(-gap, 0)}`, "glw", 0, gap > 0 ? 22 : -12, "middle");
+  if (Math.abs(gap) <= 0.6) over += guides(e.Q, e.P, "P* = 50", "Q* = 50") + dot(e.Q, e.P, "dE", 7);
+  else over += dot(qd, P, "dD") + dot(qs, P, "dS");
+  // manilla del precio
+  over += `<g class="handle" data-drag="P"><rect class="pill" x="${G.ml + 4}" y="${Y(P) - 12}" width="54" height="24" rx="12"/><text class="pillt" x="${G.ml + 31}" y="${Y(P) + 4}" text-anchor="middle">$${fmt(P, 0)}</text></g>` + ln(0, P, QMAX, P, "hit", 'data-drag="P"');
+  draw(g1, inner, over);
+  $("#m1bars").innerHTML = `
+    <div class="bar"><span>Quieren comprar</span><div class="track"><div class="fill" style="width:${Math.min(100, qd)}%;background:var(--demand)"></div></div><span class="v">${fmt(qd, 0)}</span></div>
+    <div class="bar"><span>Quieren vender</span><div class="track"><div class="fill" style="width:${Math.min(100, qs)}%;background:var(--supply)"></div></div><span class="v">${fmt(qs, 0)}</span></div>`;
+  const st = Math.abs(gap) <= 0.6 ? `<span class="chip good">EQUILIBRIO</span><span>A $50 se transan 50 unidades. Nadie quiere cambiar el precio.</span>`
+    : gap > 0 ? `<span class="chip bad">ESCASEZ · faltan ${fmt(gap, 0)}</span><span>Hay compradores sin producto: presión para que el precio <b>suba</b>.</span>`
+      : `<span class="chip warn">EXCEDENTE · sobran ${fmt(-gap, 0)}</span><span>Los vendedores acumulan stock: presión para que el precio <b>baje</b>.</span>`;
+  $("#m1status").innerHTML = st;
+}
+dragger(g1, {
+  move(k, pt) { if (m1.locked) return; let P = clamp(Math.round(pt.p), 2, 98); if (Math.abs(P - eq(M).P) <= 1.5) P = eq(M).P; m1.P = P; render1(); ms1.check(); },
+  end() { ms1.check(); }
+});
+g1.addEventListener("keydown", e => { if (m1.locked) return; if (e.key === "ArrowUp" || e.key === "ArrowDown") { m1.P = clamp(m1.P + (e.key === "ArrowUp" ? 1 : -1), 2, 98); render1(); ms1.check(); e.preventDefault(); } });
+g1.setAttribute("tabindex", "0");
+
+/* ================= MÓDULO 2 · CAMBIOS ================= */
+const SC = [
+  { mk: "Mercado del café", txt: "Un estudio muy difundido dice que el café mejora la concentración.", moves: { D: 20 }, P: "sube", Q: "sube", curveHint: "El estudio cambia lo que los compradores quieren, no lo que cuesta producir café.", dirHint: "¿La gente querrá más o menos café a cada precio?", why: "Cambian los gustos: a cada precio la gente quiere más café. La demanda se desplaza a la derecha y suben el precio y la cantidad." },
+  { mk: "Mercado de la palta", txt: "Una sequía en la zona central reduce fuertemente la cosecha de paltas.", moves: { S: -20 }, P: "sube", Q: "baja", curveHint: "La sequía afecta a quienes producen paltas, no a los gustos de quienes las compran.", dirHint: "Con menos cosecha, ¿hay más o menos paltas para vender a cada precio?", why: "Menos cosecha significa menos oferta a cada precio. La oferta se desplaza a la izquierda: el precio sube y se transa menos." },
+  { mk: "Mercado del pan", txt: "Una nueva amasadora industrial reduce el costo de producir pan.", moves: { S: 20 }, P: "baja", Q: "sube", curveHint: "Una mejor tecnología cambia los costos de los productores.", dirHint: "Si producir cuesta menos, ¿las panaderías ofrecerán más o menos pan a cada precio?", why: "Mejor tecnología baja los costos, así que se ofrece más a cada precio. La oferta se desplaza a la derecha: el precio baja y la cantidad sube." },
+  { mk: "Mercado de la palta", txt: "En la feria, la palta baja de precio y la gente compra más paltas.", moves: {}, curveHint: "", dirHint: "", why: "Un cambio en el precio del propio bien no desplaza ninguna curva. Es un movimiento a lo largo de la demanda: a menor precio, mayor cantidad demandada.", trap: true },
+  { mk: "Viajes al extranjero", txt: "Cae el ingreso de los hogares. Los viajes al extranjero son un bien normal.", moves: { D: -20 }, P: "baja", Q: "baja", curveHint: "Cambió el bolsillo de los compradores, no los costos de las agencias.", dirHint: "Con menos ingreso, ¿la gente quiere más o menos viajes a cada precio?", why: "Con un bien normal, menos ingreso significa menos demanda. La curva se desplaza a la izquierda: bajan el precio y la cantidad." },
+  { mk: "Mercado del pan", txt: "Sube el precio de la harina.", moves: { S: -20 }, P: "sube", Q: "baja", curveHint: "La harina es un insumo: afecta el costo de quien hace el pan.", dirHint: "Si el insumo es más caro, ¿se ofrece más o menos pan a cada precio?", why: "El insumo más caro reduce la oferta. La oferta se desplaza a la izquierda: el pan sube y se vende menos." },
+  { mk: "Mercado del café", txt: "Sube fuertemente el precio del té.", moves: { D: 20 }, P: "sube", Q: "sube", curveHint: "El té y el café son sustitutos para quien los toma. ¿A quién afecta eso?", dirHint: "Si el té está caro, ¿la gente busca más o menos café?", why: "El té y el café son sustitutos: si el té sube, parte de la gente se cambia al café. La demanda de café se desplaza a la derecha." },
+  { mk: "Mercado de la bencina (hoy)", txt: "Se anuncia que la bencina subirá de precio la próxima semana.", moves: { D: 20 }, P: "sube", Q: "sube", curveHint: "Las expectativas cambian lo que la gente quiere comprar hoy.", dirHint: "Si sabes que mañana será más cara, ¿cargas más o menos hoy?", why: "Por las expectativas, la gente adelanta sus compras. La demanda de hoy se desplaza a la derecha." },
+  { mk: "Mercado del cobre", txt: "China construye menos y compra menos cobre en el mundo.", moves: { D: -20 }, P: "baja", Q: "baja", curveHint: "China es un comprador de cobre.", dirHint: "Si un gran comprador compra menos, ¿la demanda aumenta o disminuye?", why: "Hay menos compradores y la demanda se desplaza a la izquierda. El precio del cobre baja, una mala noticia para Chile." },
+  { mk: "Hospedaje en una ciudad", txt: "Llega un festival masivo y, al mismo tiempo, abren muchos hostales nuevos.", moves: { D: 20, S: 20 }, P: "depende", Q: "sube", curveHint: "Aquí pasan dos cosas: piensa en los turistas y en los hostales.", dirHint: "Más turistas y más hostales: ¿hacia dónde va cada curva?", why: "Suben las dos curvas. La cantidad sube con seguridad. El precio depende de cuál se movió más: aquí se movieron igual y el precio quedó en $50." }
+];
+const m2 = { mode: "C", i: 0, sD: 0, sS: 0, phase: "drag", ansP: null, ansQ: null, drag: null, trapK: 0, lab: { sD: 0, sS: 0 } };
+const solved2 = new Set(saved.cambiosCases || []);
+const g2 = $("#g2");
+const ms2 = Missions("cambios", $("#m2list"), [
+  { id: "c5", short: "5 casos resueltos", text: "Resuelve <b>5 casos</b> en la pestaña Casos.", check: () => solved2.size >= 5 },
+  { id: "pUpQdown", short: "Precio ↑ y cantidad ↓", text: "Haz que el <b>precio suba</b> y la <b>cantidad baje</b>.", check: () => labDelta().dP > 2 && labDelta().dQ < -2 },
+  { id: "both", short: "Ambos suben", text: "Haz que <b>suban precio y cantidad</b>.", check: () => labDelta().dP > 2 && labDelta().dQ > 2 },
+  { id: "pDownQup", short: "Precio ↓ y cantidad ↑", text: "Haz que <b>baje el precio</b> y <b>suba la cantidad</b>.", check: () => labDelta().dP < -2 && labDelta().dQ > 2 },
+  { id: "qOnly", short: "¡Desafío logrado!", text: "Desafío: aumenta la cantidad en más de 10 <b>sin que cambie el precio</b> (±1).", check: () => Math.abs(labDelta().dP) < 1 && labDelta().dQ > 10 }
+], { ordered: false });
+function labDelta() { const e0 = eq(M), e1 = eq(shifted(m2.lab.sD, m2.lab.sS)); return { dP: e1.P - e0.P, dQ: e1.Q - e0.Q }; }
+function cur2() { return m2.mode === "L" ? shifted(m2.lab.sD, m2.lab.sS) : shifted(m2.sD, m2.sS); }
+function render2() {
+  const m = cur2(), e0 = eq(M), e1 = eq(m), sc = SC[m2.i];
+  const moved = m.A !== M.A || m.C !== M.C;
+  const D = curve(m, "D", "", true), S = curve(m, "S", "", true);
+  let inner = "", over = "";
+  if (moved) { const gD = curve(M, "D", "ghost"), gS = curve(M, "S", "ghost"); inner += gD.line + gS.line; over += gD.label + gS.label; }
+  inner += D.line + S.line; over += D.label + S.label;
+  const showEq = m2.mode === "L" || m2.phase !== "drag";
+  if (m2.mode === "C" && sc.trap && m2.phase === "done") {
+    const k = m2.trapK, q = 50 + 18 * k, p = M.A - M.B * q;
+    over += `<path class="arr" d="M${X(50)},${Y(50)} L${X(q)},${Y(p)}" marker-end="url(#g2m)"/>` + dot(50, 50, "dOld", 6) + dot(q, p, "dE", 7) + tx(q, p, "movimiento a lo largo de D", "gl", 12, 4);
+  } else if (moved && showEq) {
+    over += dot(e0.Q, e0.P, "dOld", 6);
+    if (Math.hypot(e1.Q - e0.Q, e1.P - e0.P) > 3) over += `<path class="arr" d="M${X(e0.Q)},${Y(e0.P)} L${X(e1.Q)},${Y(e1.P)}" marker-end="url(#g2m)"/>`;
+    if (m2.mode === "L" || m2.phase === "done") over += guides(e1.Q, e1.P, "P = " + fmt(e1.P), "Q = " + fmt(e1.Q));
+    over += dot(e1.Q, e1.P, "dE", 7);
+  } else if (!moved) over += dot(e0.Q, e0.P, "dE", 6);
+  draw(g2, inner, over);
+  // estadísticas
+  const reveal = m2.mode === "L" || m2.phase === "done";
+  const cell = (k, a, b, d = 1) => `<div class="stat"><div class="k">${k}</div><div class="v">${reveal ? fmt(b, d) : "?"}</div><div class="d ${b - a > 0.05 ? "up" : b - a < -0.05 ? "down" : ""}">${reveal ? "antes " + fmt(a, d) + " · " + sgn(b - a, d) : "antes " + fmt(a, d)}</div></div>`;
+  $("#m2stats").innerHTML = cell("Precio", e0.P, e1.P) + cell("Cantidad", e0.Q, e1.Q) + cell("Exc. consumidor", csOf(M), csOf(m), 0) + cell("Exc. productor", psOf(M), psOf(m), 0);
+}
+function renderCase() {
+  const sc = SC[m2.i];
+  $("#m2num").textContent = (m2.i + 1) + " de " + SC.length;
+  $("#m2mk").textContent = sc.mk; $("#m2txt").textContent = sc.txt;
+  $("#m2dots").innerHTML = SC.map((_, i) => `<button class="${solved2.has(i) ? "ok " : ""}${i === m2.i ? "cur" : ""}" data-i="${i}" aria-label="Caso ${i + 1}">${i + 1}</button>`).join("");
+  $("#m2dots").querySelectorAll("button").forEach(b => b.onclick = () => loadCase(+b.dataset.i));
+  const st = $("#m2step");
+  const need = Object.keys(sc.moves);
+  if (m2.phase === "drag") {
+    const doneMoves = need.filter(k => (k === "D" ? m2.sD : m2.sS) === sc.moves[k]);
+    st.innerHTML = `<div class="qrow"><span class="lbl">Paso 1 · Arrastra en el gráfico la curva que se desplaza${need.length > 1 ? " (puede ser más de una)" : ""}.</span>
+      <div class="btns"><button class="btn" id="m2none">Ninguna curva se desplaza</button></div></div>
+      <div class="feedback" id="m2fb">${doneMoves.length ? "✓ Bien. ¿Se mueve algo más?" : ""}</div>`;
+    $("#m2none").onclick = () => {
+      if (sc.trap) { m2.phase = "done"; solveCase(); tween(0, 1, 1200, v => { m2.trapK = v; render2(); }); }
+      else { fb2("no", "Sí se desplaza alguna. Pregúntate si el hecho afecta a quienes compran o a quienes producen."); }
+    };
+  } else if (m2.phase === "pq") {
+    const opt = (g, v, l) => `<button class="btn ${m2["ans" + g] === v ? (sc[g] === v ? "ok" : "no") : ""}" data-g="${g}" data-v="${v}">${l}</button>`;
+    st.innerHTML = `<div class="qrow"><span class="lbl">Paso 2 · Compara el punto gris (antes) con el nuevo cruce. ¿Qué pasó con el <b>precio</b> de equilibrio?</span><div class="btns">${opt("P", "sube", "Sube ↑")}${opt("P", "baja", "Baja ↓")}${opt("P", "depende", "Depende")}</div></div>
+      <div class="qrow"><span class="lbl">¿Y con la <b>cantidad</b> de equilibrio?</span><div class="btns">${opt("Q", "sube", "Sube →")}${opt("Q", "baja", "Baja ←")}${opt("Q", "depende", "Depende")}</div></div>
+      <div class="feedback" id="m2fb"></div>`;
+    st.querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+      const g = b.dataset.g; m2["ans" + g] = b.dataset.v;
+      if (m2.ansP === sc.P && m2.ansQ === sc.Q) { m2.phase = "done"; solveCase(); render2(); return; }
+      renderCase();
+      if (b.dataset.v !== sc[g]) fb2("no", sc.P === "depende" && g === "P" ? "Con dos curvas moviéndose, ¿puedes asegurar hacia dónde va el precio en cualquier caso?" : "Mira la altura (precio) y la posición horizontal (cantidad) del nuevo cruce respecto al punto gris.");
+    });
+  } else {
+    st.innerHTML = `<div class="chip good">✓ CASO RESUELTO</div><p style="margin:0">${sc.why}</p>
+      <div class="btns"><button class="btn primary" id="m2next">${m2.i < SC.length - 1 ? "Siguiente caso →" : "Volver al primero"}</button></div>`;
+    $("#m2next").onclick = () => loadCase((m2.i + 1) % SC.length);
+  }
+}
+function fb2(c, t) { const f = $("#m2fb"); if (f) { f.className = "feedback " + c; f.textContent = t; } }
+function solveCase() { solved2.add(m2.i); saved.cambiosCases = [...solved2]; save(); renderCase(); ms2.check(); }
+function loadCase(i) { m2.i = i; m2.sD = 0; m2.sS = 0; m2.phase = "drag"; m2.ansP = m2.ansQ = null; m2.trapK = 0; render2(); renderCase(); }
+function afterDrop2(k) {
+  if (m2.mode === "L") { ms2.check(); return; }
+  const sc = SC[m2.i], key = k === "D" ? "sD" : "sS", v = m2[key];
+  if (m2.phase !== "drag") { return; }
+  if (Math.abs(v) < 4) { tween(v, 0, 250, x => { m2[key] = x; render2(); }); return; }
+  const want = sc.moves[k];
+  const back = msg => { fb2("no", msg); tween(v, 0, 400, x => { m2[key] = x; render2(); }); };
+  if (want === undefined) return back(sc.trap ? "Esta curva no se mueve. ¿Cambió algo distinto del precio de la palta?" : (k === "D" ? "La demanda no cambia con este hecho. " : "La oferta no cambia con este hecho. ") + sc.curveHint);
+  if (Math.sign(want) !== Math.sign(v)) return back("Curva correcta, dirección equivocada. " + sc.dirHint);
+  tween(v, want, 300, x => { m2[key] = x; render2(); }, () => {
+    const allOk = Object.keys(sc.moves).every(c => (c === "D" ? m2.sD : m2.sS) === sc.moves[c]);
+    if (allOk) { m2.phase = "pq"; render2(); renderCase(); fb2("ok", "✓ ¡Exacto! Ahora lee el nuevo equilibrio."); }
+    else { renderCase(); }
+  });
+}
+dragger(g2, {
+  start(k, pt) { const s = m2.mode === "L" ? m2.lab : m2; m2.drag = { k, q0: pt.q, s0: k === "D" ? s.sD : s.sS }; },
+  move(k, pt) {
+    if (m2.mode === "C" && m2.phase !== "drag") return;
+    const s = m2.mode === "L" ? m2.lab : m2, v = clamp(m2.drag.s0 + (pt.q - m2.drag.q0), -30, 30);
+    if (k === "D") s.sD = Math.round(v); else s.sS = Math.round(v); render2();
+  },
+  end(k) { afterDrop2(k); }
+});
+$("#m2nudge").addEventListener("click", e => {
+  const b = e.target.closest("[data-n]"); if (!b) return;
+  const k = b.dataset.n[0], d = b.dataset.n[1] === "+" ? 1 : -1;
+  if (m2.mode === "L") { const s = m2.lab; if (k === "D") s.sD = clamp(s.sD + 5 * d, -30, 30); else s.sS = clamp(s.sS + 5 * d, -30, 30); render2(); ms2.check(); }
+  else if (m2.phase === "drag") { const key = k === "D" ? "sD" : "sS"; m2[key] = 20 * d; render2(); afterDrop2(k); }
+});
+function setMode2(md) {
+  m2.mode = md; $("#m2modeC").setAttribute("aria-pressed", md === "C"); $("#m2modeL").setAttribute("aria-pressed", md === "L");
+  $("#m2cases").hidden = md !== "C"; $("#m2lab").hidden = md !== "L"; render2();
+}
+$("#m2modeC").onclick = () => setMode2("C"); $("#m2modeL").onclick = () => setMode2("L");
+$("#m2reset").onclick = () => { m2.lab.sD = 0; m2.lab.sS = 0; render2(); };
+
+/* ================= MÓDULO 3 · ELASTICIDAD ================= */
+const m3 = { B: 1, PA: 70, PB: 60, predicted: false, pairsOk: new Set(), pairsTried: new Set() };
+const g3 = $("#g3");
+const dem3 = () => { const A = 60 + 40 * m3.B; return { A, B: m3.B }; }; // pivote en (Q=40, P=60)
+const q3 = P => (dem3().A - P) / m3.B;
+function pRange3() { const { A, B } = dem3(); return [Math.max(3, A - 100 * B), Math.min(97, A - 2 * B)]; }
+function calc3() {
+  const qa = q3(m3.PA), qb = q3(m3.PB), ia = m3.PA * qa, ib = m3.PB * qb;
+  const pctQ = (qb - qa) / ((qa + qb) / 2) * 100, pctP = (m3.PB - m3.PA) / ((m3.PA + m3.PB) / 2) * 100;
+  const E = Math.abs(pctP) < 1e-9 ? NaN : Math.abs(pctQ / pctP);
+  return { qa, qb, ia, ib, pctQ, pctP, E };
+}
+const ms3 = Missions("elasticidad", $("#m3list"), [
+  { id: "up", short: "Precio subido", text: "Arrastra <b>B por encima de A</b>: el precio sube al menos $5.", check: () => m3.PB >= m3.PA + 5 },
+  { id: "pred", short: "Predicción hecha", text: "Antes de ver los números: con esta subida de precio, ¿el <b>ingreso total</b>…", ui: () => `<button class="btn" data-a="up">Sube</button><button class="btn" data-a="down">Baja</button><button class="btn" data-a="same">No cambia</button>` },
+  { id: "rise", short: "¡Ingreso arriba!", text: "Encuentra un tramo donde <b>subir el precio AUMENTE el ingreso</b>.", check: () => { const c = calc3(); return m3.PB > m3.PA + 2 && c.ib > c.ia * 1.01; } },
+  { id: "max", short: "Ingreso máximo", text: "Lleva B al precio que <b>maximiza el ingreso</b>. Mira la forma del rectángulo.", check: () => Math.abs(m3.PB - dem3().A / 2) <= 1 },
+  { id: "flat", short: "Curva aplanada", text: "Mueve el control a <b>“muy sensibles”</b> (curva plana) y observa cómo crece |E|.", check: () => m3.B <= 0.6 }
+], {
+  afterRender(el) {
+    el.querySelectorAll("[data-a]").forEach(b => b.onclick = () => {
+      const c = calc3(), fb = el.querySelector("[data-fb]");
+      const r = (c.ib - c.ia) / c.ia, truth = Math.abs(r) < 0.01 ? "same" : (r > 0 ? "up" : "down");
+      m3.predicted = true;
+      if (b.dataset.a === truth) { ms3.complete("pred"); toast("✓ ¡Bien! El ingreso " + (truth === "up" ? "sube" : truth === "down" ? "baja" : "no cambia")); }
+      else { b.classList.add("no"); fb.className = "feedback no"; fb.textContent = "No era así. Mira ahora los números: compara los dos rectángulos."; setTimeout(() => ms3.complete("pred"), 1600); }
+      render3();
+    });
+  }
+});
+function render3() {
+  const d = dem3(), c = calc3(), [lo, hi] = pRange3();
+  m3.PA = clamp(m3.PA, lo, hi); m3.PB = clamp(m3.PB, lo, hi);
+  const c2 = calc3();
+  const s = seg(d.A, -d.B);
+  let inner = poly([[0, 0], [0, m3.PA], [c2.qa, m3.PA], [c2.qa, 0]], "rA") + poly([[0, 0], [0, m3.PB], [c2.qb, m3.PB], [c2.qb, 0]], "rB");
+  inner += ln(s[0][0], s[0][1], s[1][0], s[1][1], "cD");
+  const qm = d.A / (2 * d.B), pm = d.A / 2;
+  let over = "";
+  if (pm < PMAX && qm < QMAX) over += `<circle cx="${X(qm)}" cy="${Y(pm)}" r="4" fill="var(--ink)"/>` + tx(qm, pm, "|E| = 1", "zone", 10, 4);
+  const qUp = qm * 0.45, pUp = d.A - d.B * qUp; if (pUp < PMAX - 4) over += tx(qUp, pUp, "elástica", "zone", 10, -8);
+  const qLo = qm * 1.55, pLo = d.A - d.B * qLo; if (qLo < QMAX - 8 && pLo > 4) over += tx(qLo, pLo, "inelástica", "zone", 10, -8);
+  over += `<g data-drag="A"><circle class="ptA" cx="${X(c2.qa)}" cy="${Y(m3.PA)}" r="11"/><text class="ptl" x="${X(c2.qa)}" y="${Y(m3.PA) + 4.5}" text-anchor="middle" fill="var(--surface)" pointer-events="none">A</text></g>`;
+  over += `<g data-drag="B"><circle class="ptB" cx="${X(c2.qb)}" cy="${Y(m3.PB)}" r="11"/><text class="ptl" x="${X(c2.qb)}" y="${Y(m3.PB) + 4.5}" text-anchor="middle" fill="var(--surface)" pointer-events="none">B</text></g>`;
+  draw(g3, inner, over);
+  const show = ms3.isDone("pred") || m3.predicted;
+  const h = v => show ? v : "?";
+  const cls = !isFinite(c2.E) ? "" : Math.abs(c2.E - 1) < 0.03 ? `<span class="chip acc">UNITARIA</span>` : c2.E > 1 ? `<span class="chip bad">ELÁSTICA</span>` : `<span class="chip good">INELÁSTICA</span>`;
+  const gpos = isFinite(c2.E) ? Math.min(100, c2.E / 3 * 100) : 0;
+  $("#m3read").innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="k" style="color:var(--accent)">Punto A</div><div class="v">$${fmt(m3.PA, 0)} × ${fmt(c2.qa)}</div><div class="d">ingreso ${h("$" + fmt(c2.ia, 0))}</div></div>
+      <div class="stat"><div class="k" style="color:var(--warn)">Punto B</div><div class="v">$${fmt(m3.PB, 0)} × ${fmt(c2.qb)}</div><div class="d ${show ? (c2.ib > c2.ia ? "up" : "down") : ""}">ingreso ${h("$" + fmt(c2.ib, 0))}</div></div>
+    </div>
+    <div style="margin-top:12px;display:grid;gap:6px">
+      <div class="status"><b>|E| = ${h(fmt(c2.E, 2))}</b> ${show ? cls : ""}</div>
+      <div class="gauge"><div class="one"></div>${show && isFinite(c2.E) ? `<div class="m" style="left:${gpos}%"></div>` : ""}</div>
+      <div class="gscale" style="position:relative;height:16px"><span style="position:absolute;left:0">0</span><span style="position:absolute;left:33.3%;transform:translateX(-50%)">1</span><span style="position:absolute;right:0">3+</span></div>
+    </div>
+    ${show ? `<div class="calc" style="margin-top:10px">%ΔQ = (${fmt(c2.qb)} − ${fmt(c2.qa)}) ÷ ${fmt((c2.qa + c2.qb) / 2)} = ${fmt(c2.pctQ)}%<br>%ΔP = (${fmt(m3.PB, 0)} − ${fmt(m3.PA, 0)}) ÷ ${fmt((m3.PA + m3.PB) / 2)} = ${fmt(c2.pctP)}%<br>|E| = |${fmt(c2.pctQ)} ÷ ${fmt(c2.pctP)}| = ${fmt(c2.E, 2)}</div>` : `<p style="margin:10px 0 0;color:var(--muted);font-size:13px">Los números aparecen cuando hagas tu predicción (misión 2).</p>`}`;
+}
+dragger(g3, {
+  move(k, pt) { const [lo, hi] = pRange3(); let P = clamp(Math.round(pt.p), lo, hi); const pm = Math.round(dem3().A / 2); if (Math.abs(P - pm) <= 1) P = pm; if (k === "A") m3.PA = P; else m3.PB = P; render3(); ms3.check(); }
+});
+$("#m3slope").addEventListener("input", e => { m3.B = +e.target.value; render3(); ms3.check(); });
+const PAIRS = [
+  ["Insulina", "Entradas al cine", 1, "La insulina es una necesidad sin sustitutos; al cine se puede dejar de ir."],
+  ["Bencina en la próxima semana", "Bencina en los próximos 5 años", 1, "Con más tiempo la gente se adapta: cambia de auto, se muda o usa transporte público."],
+  ["Sal", "Pasajes de avión a Europa", 1, "La sal pesa muy poco en el presupuesto; un pasaje pesa mucho."],
+  ["Una marca específica de bebida", "Bebidas en general", 0, "Una marca tiene sustitutos muy cercanos (otras marcas). Las bebidas en general, menos."],
+  ["Pan", "Pasteles de pastelería gourmet", 1, "El pan es básico; los pasteles gourmet son un lujo prescindible."]
+];
+function renderPairs() {
+  $("#m3pairs").innerHTML = PAIRS.map((p, i) => {
+    const tried = m3.pairsTried.has(i), ok = m3.pairsOk.has(i);
+    const b = j => `<button class="btn ${tried && j === p[2] ? "ok" : ""}" data-p="${i}" data-j="${j}" ${tried ? "disabled" : ""}>${p[j]}</button>`;
+    return `<div class="pair">${b(0)}<span class="vs">vs</span>${b(1)}${tried ? `<div class="pair-fb ${ok ? "up" : "down"}">${ok ? "✓ " : "✗ "}${p[3]}</div>` : ""}</div>`;
+  }).join("");
+  $("#m3pairsScore").textContent = m3.pairsOk.size + "/" + PAIRS.length;
+  $("#m3pairs").querySelectorAll("[data-p]").forEach(b => b.onclick = () => { const i = +b.dataset.p; m3.pairsTried.add(i); if (+b.dataset.j === PAIRS[i][2]) m3.pairsOk.add(i); renderPairs(); });
+}
+
+/* ================= MÓDULO 4 · EXCEDENTES ================= */
+const m4 = { Pr: 50, flash: null };
+const g4 = $("#g4");
+function surplus(Pr) {
+  const e = eq(M);
+  if (Math.abs(Pr - e.P) < 0.5) {
+    const CS = [[0, M.A], [0, e.P], [e.Q, e.P]], PS = [[0, e.P], [0, M.C], [e.Q, e.P]];
+    return { mode: "none", Qt: e.Q, CS, PS, DWL: null };
+  }
+  if (Pr < e.P) {
+    const Qt = Qs(M, Pr), Pd = M.A - M.B * Qt;
+    return { mode: "max", Qt, CS: [[0, M.A], [0, Pr], [Qt, Pr], [Qt, Pd]], PS: [[0, Pr], [0, M.C], [Qt, Pr]], DWL: [[Qt, Pd], [Qt, Pr], [e.Q, e.P]], gap: Qd(M, Pr) - Qt };
+  }
+  const Qt = Qd(M, Pr), Ps = M.C + M.D * Qt;
+  return { mode: "min", Qt, CS: [[0, M.A], [0, Pr], [Qt, Pr]], PS: [[0, Pr], [0, M.C], [Qt, Ps], [Qt, Pr]], DWL: [[Qt, Pr], [Qt, Ps], [e.Q, e.P]], gap: Qs(M, Pr) - Qt };
+}
+const base4 = { cs: 1250, ps: 750 };
+const ms4 = Missions("excedentes", $("#m4list"), [
+  { id: "tapCS", short: "Excedente del consumidor", text: "<b>Toca</b> en el gráfico el área del <b>excedente del consumidor</b>." },
+  { id: "tapPS", short: "Excedente del productor", text: "Ahora toca el área del <b>excedente del productor</b>." },
+  { id: "calc", short: "¡Cálculo correcto!", text: "Calcula: sin regulación, ¿cuánto vale el <b>excedente del consumidor</b>?", ui: () => `<div class="inrow"><input class="num" id="m4in" inputmode="decimal" placeholder="ej: 900" aria-label="Excedente del consumidor"><button class="btn primary" id="m4chk">Comprobar</button></div>` },
+  { id: "max", short: "Pérdida creada", text: "Arrastra la línea <b>bajo $50</b> (precio máximo) hasta que la <b>pérdida irrecuperable supere 300</b>.", check: () => { const s = surplus(m4.Pr); return s.mode === "max" && area(s.DWL) > 300; } },
+  { id: "min", short: "¡Sorpresa descubierta!", text: "Ahora un <b>precio mínimo</b> (sobre $50): encuentra uno donde los <b>productores ganen MENOS</b> que sin regulación.", check: () => { const s = surplus(m4.Pr); return s.mode === "min" && area(s.PS) < base4.ps; } }
+], {
+  afterRender(el) {
+    const btn = el.querySelector("#m4chk"); if (!btn) return;
+    const go = () => {
+      const v = parseNum($("#m4in").value), fb = el.querySelector("[data-fb]");
+      if (Math.abs(v - 1250) <= 2) { ms4.complete("calc"); }
+      else { fb.className = "feedback no"; fb.innerHTML = isNaN(v) ? "Escribe un número." : "Todavía no. Es un triángulo: <b>base</b> = Q* = 50, <b>altura</b> = precio máximo que alguien pagaría ($100) − P* ($50). Área = base × altura ÷ 2."; }
+    };
+    btn.onclick = go; $("#m4in").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+  }
+});
+function render4() {
+  const s = surplus(m4.Pr), e = eq(M);
+  const cs = area(s.CS), ps = area(s.PS), dwl = s.DWL ? area(s.DWL) : 0;
+  const D = curve(M, "D"), S = curve(M, "S");
+  let inner = poly(s.CS, "fCS", 'data-hit="CS"') + poly(s.PS, "fPS", 'data-hit="PS"') + (s.DWL ? poly(s.DWL, "fDWL", 'data-hit="DWL"') : "");
+  if (m4.flash) inner += poly(s[m4.flash] || s.CS, "flash", 'fill="none"');
+  inner += D.line + S.line;
+  let over = D.label + S.label;
+  if (s.mode === "none") over += guides(e.Q, e.P, "P* = 50", "Q* = 50") + dot(e.Q, e.P, "dE", 6);
+  else {
+    over += ln(0, m4.Pr, QMAX, m4.Pr, "price") + ln(s.Qt, 0, s.Qt, Math.max(m4.Pr, M.A - M.B * s.Qt), "guide") + tx(s.Qt, 0, "Q = " + fmt(s.Qt), "gl", 6, -8);
+    over += tx(QMAX, m4.Pr, s.mode === "max" ? "precio máximo" : "precio mínimo", "gl", -8, s.mode === "max" ? 18 : -8, "end");
+  }
+  const lbl = s.mode === "none" ? "$50" : "$" + fmt(m4.Pr, 0);
+  over += `<g class="handle" data-drag="R"><rect class="pill" x="${G.ml + 4}" y="${Y(m4.Pr) - 12}" width="54" height="24" rx="12"/><text class="pillt" x="${G.ml + 31}" y="${Y(m4.Pr) + 4}" text-anchor="middle">${lbl}</text></g>` + ln(0, m4.Pr, QMAX, m4.Pr, "hit", 'data-drag="R"');
+  draw(g4, inner, over);
+  const delta = (v, b) => { const d = v - b; return Math.abs(d) < 0.5 ? "sin cambio" : `<span class="${d > 0 ? "up" : "down"}">${sgn(d, 0)}</span>`; };
+  $("#m4stats").innerHTML = `
+    <div class="stat cs"><div class="k">Exc. consumidor</div><div class="v">${fmt(cs, 0)}</div><div class="d">${delta(cs, base4.cs)}</div></div>
+    <div class="stat ps"><div class="k">Exc. productor</div><div class="v">${fmt(ps, 0)}</div><div class="d">${delta(ps, base4.ps)}</div></div>
+    <div class="stat dwl"><div class="k">Pérdida irrecup.</div><div class="v">${fmt(dwl, 0)}</div><div class="d">${dwl > 0.5 ? "valor que nadie obtiene" : "—"}</div></div>
+    <div class="stat"><div class="k">Bienestar total</div><div class="v">${fmt(cs + ps, 0)}</div><div class="d">${delta(cs + ps, 2000)}</div></div>`;
+  $("#m4status").innerHTML = s.mode === "none" ? `<span class="chip good">SIN REGULACIÓN</span><span>El mercado transa 50 unidades a $50. El bienestar total es el máximo posible.</span>`
+    : s.mode === "max" ? `<span class="chip bad">PRECIO MÁXIMO $${fmt(m4.Pr, 0)}</span><span>Solo se venden ${fmt(s.Qt)} unidades y faltan ${fmt(s.gap)}. Algunos consumidores pagan menos, pero otros se quedan sin comprar.</span>`
+      : `<span class="chip warn">PRECIO MÍNIMO $${fmt(m4.Pr, 0)}</span><span>Solo se compran ${fmt(s.Qt)} unidades y sobran ${fmt(s.gap)}. Los productores cobran más, pero venden menos.</span>`;
+}
+dragger(g4, {
+  move(k, pt) { let P = clamp(Math.round(pt.p), 22, 96); if (Math.abs(P - 50) <= 1) P = 50; m4.Pr = P; m4.flash = null; render4(); ms4.check(); },
+  tap(hit) {
+    const act = ms4.active(); if (!act) return;
+    if (act.id === "tapCS" || act.id === "tapPS") {
+      const want = act.id === "tapCS" ? "CS" : "PS";
+      if (hit === want) { m4.flash = want; render4(); ms4.complete(act.id); setTimeout(() => { m4.flash = null; render4(); }, 1200); }
+      else {
+        const msg = hit === "PS" ? "Ese es el del productor: lo que ganan vendiendo sobre su costo mínimo." : hit === "CS" ? "Ese es el del consumidor: lo que ahorran pagando menos de lo que estaban dispuestos." : hit === "DWL" ? "Esa es la pérdida irrecuperable." : "Ahí no hay excedente. Busca un triángulo entre una curva y el precio.";
+        toast(msg);
+      }
+    }
+  }
+});
+
+/* ================= MÓDULO 5 · DESAFÍO ================= */
+const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const m5 = saved.desafio || { ok: 0, tot: 0, streak: 0, best: 0, byType: {} };
+let q5 = null;
+const TYPES = { eq: "Equilibrio", el: "Elasticidad", cs: "Excedente", sh: "Desplazamientos" };
+function gen(type) {
+  if (type === "eq") {
+    const P = ri(4, 30), Q = ri(20, 80), b = pick([1, 2, 3]), d = pick([1, 2, 4]), a = Q + b * P, c = Q - d * P;
+    return { type, stmt: "Encuentra el precio y la cantidad de equilibrio.", eqn: `Qd = ${a} − ${b === 1 ? "" : b}P &nbsp;&nbsp; Qs = ${c < 0 ? "−" + -c : c} + ${d === 1 ? "" : d}P`, fields: [["P*", P], ["Q*", Q]], tol: 0.01,
+      sol: `Iguala Qd = Qs: ${a} − ${b}P = ${c} + ${d}P → ${a - c} = ${b + d}P → <b>P* = ${P}</b>.<br>Reemplaza: Qd = ${a} − ${b}·${P} = <b>${Q}</b>.` };
+  }
+  if (type === "el") {
+    const p1 = ri(4, 12) * 100, up = Math.random() < 0.5, p2 = p1 + (up ? 1 : -1) * ri(1, 3) * 100;
+    const q1 = ri(30, 90), dq = ri(3, 30), q2 = up ? q1 - dq : q1 + dq;
+    const pq = (q2 - q1) / ((q1 + q2) / 2), pp = (p2 - p1) / ((p1 + p2) / 2), E = Math.abs(pq / pp);
+    const cls = Math.abs(E - 1) < 0.02 ? "unitaria" : E > 1 ? "elastica" : "inelastica";
+    return { type, stmt: `Un helado pasa de $${fmt(p1, 0)} a $${fmt(p2, 0)} y las ventas diarias van de ${q1} a ${q2}. Calcula |E| con el método del punto medio (2 decimales) y clasifica la demanda.`, fields: [["|E|", E]], tol: 0.02, choice: { opts: [["elastica", "Elástica"], ["inelastica", "Inelástica"], ["unitaria", "Unitaria"]], ans: cls },
+      sol: `%ΔQ = (${q2} − ${q1}) ÷ ${fmt((q1 + q2) / 2)} = ${fmt(pq * 100)}%<br>%ΔP = (${p2} − ${p1}) ÷ ${fmt((p1 + p2) / 2)} = ${fmt(pp * 100)}%<br>|E| = ${fmt(Math.abs(pq * 100), 1)} ÷ ${fmt(Math.abs(pp * 100), 1)} = <b>${fmt(E, 2)}</b> → ${E > 1.02 ? "elástica (|E| > 1)" : E < 0.98 ? "inelástica (|E| < 1)" : "unitaria"}.` };
+  }
+  if (type === "cs") {
+    const b = pick([0.5, 1, 2]), Q = ri(2, 12) * 10, P = ri(2, 9) * 10, a = P + b * Q, cs = 0.5 * Q * (a - P);
+    return { type, stmt: `La demanda inversa es P = ${fmt(a)} − ${fmt(b)}Q y el precio de mercado es $${P}. ¿Cuánto se compra y cuál es el excedente del consumidor?`, fields: [["Q", Q], ["EC", cs]], tol: 0.01,
+      sol: `Cantidad: ${P} = ${fmt(a)} − ${fmt(b)}Q → Q = (${fmt(a)} − ${P}) ÷ ${fmt(b)} = <b>${Q}</b>.<br>EC = ½ × base × altura = ½ × ${Q} × (${fmt(a)} − ${P}) = <b>${fmt(cs)}</b>.` };
+  }
+  const sc = pick(SC.filter(s => !s.trap));
+  return { type: "sh", stmt: `<b>${sc.mk}.</b> ${sc.txt}`, sh: sc, sol: sc.why };
+}
+function newQ(type) { q5 = gen(type || pick(Object.keys(TYPES))); q5.answered = false; render5(); }
+function render5() {
+  const q = q5, el = $("#m5card");
+  let body = `<div class="eyebrow">${TYPES[q.type]}</div><div class="stmt">${q.stmt}</div>`;
+  if (q.eqn) body += `<div><span class="eqn">${q.eqn}</span></div>`;
+  if (q.type === "sh") {
+    const o = (g, v, l) => `<button class="btn" data-g="${g}" data-v="${v}">${l}</button>`;
+    body += `<div class="qrow"><span class="lbl">Precio de equilibrio</span><div class="btns" data-grp="P">${o("P", "sube", "Sube")}${o("P", "baja", "Baja")}${o("P", "depende", "Depende")}</div></div>
+      <div class="qrow"><span class="lbl">Cantidad de equilibrio</span><div class="btns" data-grp="Q">${o("Q", "sube", "Sube")}${o("Q", "baja", "Baja")}${o("Q", "depende", "Depende")}</div></div>`;
+  } else {
+    body += `<div class="inrow">${q.fields.map(([l], i) => `<label class="sl" for="m5f${i}">${l}<input class="num" id="m5f${i}" inputmode="decimal"></label>`).join("")}</div>`;
+    if (q.choice) body += `<div class="btns" data-grp="C">${q.choice.opts.map(([v, l]) => `<button class="btn" data-g="C" data-v="${v}">${l}</button>`).join("")}</div>`;
+  }
+  body += `<div class="btns"><button class="btn primary" id="m5chk">Comprobar</button><button class="btn" id="m5sol">Ver solución</button><button class="btn" id="m5new">Otra pregunta →</button></div><div class="feedback" id="m5fb"></div><div class="calc" id="m5solbox" hidden>${q.sol}</div>`;
+  el.innerHTML = body;
+  q.sel = {};
+  el.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { q.sel[b.dataset.g] = b.dataset.v; b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); b.parentElement.querySelectorAll("button").forEach(x => x.classList.toggle("primary", x === b)); });
+  $("#m5chk").onclick = check5; $("#m5sol").onclick = () => { $("#m5solbox").hidden = false; if (!q.answered) { q.answered = true; m5.tot++; m5.streak = 0; store5(); } };
+  $("#m5new").onclick = () => newQ(m5.only);
+  el.querySelectorAll("input.num").forEach(i => i.addEventListener("keydown", e => { if (e.key === "Enter") check5(); }));
+  renderScore5();
+}
+function check5() {
+  const q = q5, fb = $("#m5fb"); let ok = true, msg = [];
+  if (q.type === "sh") {
+    if (!q.sel.P || !q.sel.Q) { fb.className = "feedback no"; fb.textContent = "Elige una opción para el precio y otra para la cantidad."; return; }
+    ok = q.sel.P === q.sh.P && q.sel.Q === q.sh.Q; if (!ok) msg.push("Piensa primero qué curva se mueve y hacia dónde.");
+  } else {
+    for (let i = 0; i < q.fields.length; i++) {
+      const v = parseNum($("#m5f" + i).value), want = q.fields[i][1];
+      const good = Math.abs(v - want) <= Math.max(q.tol, Math.abs(want) * 0.005);
+      $("#m5f" + i).style.borderColor = good ? "var(--good)" : "var(--bad)";
+      if (!good) { ok = false; msg.push(isNaN(v) ? `Falta ${q.fields[i][0]}.` : `${q.fields[i][0]} no es correcto.`); }
+    }
+    if (q.choice) { if (q.sel.C !== q.choice.ans) { ok = false; msg.push("Revisa la clasificación."); } }
+  }
+  if (!q.answered) { q.answered = true; m5.tot++; if (ok) { m5.ok++; m5.streak++; m5.best = Math.max(m5.best, m5.streak); m5.byType[q.type] = (m5.byType[q.type] || 0) + 1; } else m5.streak = 0; store5(); }
+  fb.className = "feedback " + (ok ? "ok" : "no");
+  fb.textContent = ok ? "✓ ¡Correcto!" + (m5.streak > 1 ? ` Racha de ${m5.streak}.` : "") : msg.join(" ") + " Puedes corregir o mirar la solución.";
+  if (ok) $("#m5solbox").hidden = false;
+  ms5.check();
+}
+function store5() { saved.desafio = m5; save(); renderScore5(); }
+function renderScore5() {
+  $("#m5score").innerHTML = `<div class="stat"><div class="k">Aciertos</div><div class="v">${m5.ok}/${m5.tot}</div></div><div class="stat"><div class="k">Racha</div><div class="v">${m5.streak}</div></div><div class="stat"><div class="k">Mejor racha</div><div class="v">${m5.best}</div></div>`;
+  $("#m5types").innerHTML = `<button class="btn ${!m5.only ? "primary" : ""}" data-t="">Mezcla</button>` + Object.entries(TYPES).map(([k, l]) => `<button class="btn ${m5.only === k ? "primary" : ""}" data-t="${k}">${l}</button>`).join("");
+  $("#m5types").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { m5.only = b.dataset.t || null; store5(); newQ(m5.only); });
+}
+const ms5 = Missions("desafio", $("#m5list"), [
+  { id: "e", short: "Equilibrio dominado", text: "Acierta una pregunta de <b>equilibrio</b>.", check: () => (m5.byType.eq || 0) >= 1 },
+  { id: "l", short: "Elasticidad dominada", text: "Acierta una de <b>elasticidad</b>.", check: () => (m5.byType.el || 0) >= 1 },
+  { id: "c", short: "Excedente dominado", text: "Acierta una de <b>excedente</b>.", check: () => (m5.byType.cs || 0) >= 1 },
+  { id: "s", short: "Desplazamientos dominados", text: "Acierta una de <b>desplazamientos</b>.", check: () => (m5.byType.sh || 0) >= 1 },
+  { id: "r", short: "¡Racha de 5!", text: "Logra una <b>racha de 5</b> respuestas correctas seguidas.", check: () => m5.best >= 5 }
+], { ordered: false });
+
+/* ---------- navegación ---------- */
+const MODS = ["mercado", "cambios", "elasticidad", "excedentes", "desafio"];
+function show(id) {
+  if (!MODS.includes(id)) id = "mercado";
+  MODS.forEach(m => { $("#" + m).hidden = m !== id; });
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.mod === id));
+  try { localStorage.setItem(STORE + "-tab", id); } catch (e) { }
+}
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => { show(t.dataset.mod); history.replaceState(null, "", "#" + t.dataset.mod); });
+
+/* ---------- inicio ---------- */
+[ms1, ms2, ms3, ms4, ms5].forEach(m => m.render());
+render1(); render2(); renderCase(); render3(); renderPairs(); render4(); newQ(m5.only);
+[ms1, ms2, ms3, ms4, ms5].forEach(m => m.check());
+m1.booted = true;
+updateProgress();
+let startTab = location.hash.slice(1); if (!MODS.includes(startTab)) { try { startTab = localStorage.getItem(STORE + "-tab"); } catch (e) { } }
+show(startTab);
+</script>
+</body>
+</html>
